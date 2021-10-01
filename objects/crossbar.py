@@ -14,16 +14,6 @@ class Crossbar:
         self.matrix = {}
         self.graph = {}
 
-        # Variables for pathfinding algorithm
-        self.src_queue = []
-        self.dest_queue = []
-        # List of visited nodes
-        self.src_visited = {}
-        self.dest_visited = {}
-        # List list of parent nodes
-        self.src_parent = {}
-        self.dest_parent = {}
-
     def print_matrix(self):
         print(f'vars {self.n_variables}\nrows {self.rows}\ncols {self.cols}')
         for x in range(self.rows):
@@ -75,80 +65,43 @@ class Crossbar:
         if connection.condition is None:
             return True
         variable = self.id_variable[connection.condition]
-        return True if ((variable.value and not self.variable_negation[connection.position][variable])
-                        or
-                        (not variable.value and self.variable_negation[connection.position][variable])) \
-            else False
+        return True if variable.value ^ self.variable_negation[connection.position][variable] else False
 
     def evaluate(self, bool_list):
         # Create graph if not already created
         if len(self.graph) == 0:
             self.create_graph()
         # Set values of all variables
-        if len(bool_list) != len(self.id_variable):
-            print('Length of input and number of variables do not match')
+        if len(bool_list) != self.n_variables:
+            print(f'(Crossbar) Length of input and number of variables do not match:\n Inputs: {len(bool_list)}\tVariables: {self.n_variables}')
+            return False
         else:
             for x in range(len(bool_list)):
                 self.id_variable[x + 1].value = bool_list[x]
-            # Initialize variables
-            for key in self.graph.keys():
-                self.src_visited[self.graph[key]] = False
-                self.src_visited[self.graph[key]] = False
-                self.src_parent[self.graph[key]] = None
-                self.dest_parent[self.graph[key]] = None
-            return self.bidirectional_search()
+            visited = []
+            return self.path_exists(self.graph["R0"], self.graph[f"R{self.rows - 1}"], visited)
 
-    def bfs(self, direction='forward'):
-        # Breadth first search in forward direction
-        if direction == 'forward':
-            current = self.src_queue.pop(0)
-            for connection in current.connections:
-                vertex = connection.node if self.allow_connection(connection) else None
+    def path_exists(self, src, dest, visited):
+        self.dfs(src, visited)
+        return dest in visited
 
-                if vertex is not None:
-                    if not self.src_visited[vertex]:
-                        self.src_queue.append(vertex)
-                        self.src_visited[vertex] = True
-                        self.src_parent = current
-        # Breadth first search in reverse direction
-        else:
-            current = self.dest_queue.pop(0)
-            for connection in current.connections:
-                vertex = connection.node if self.allow_connection(connection) else None
+    def dfs(self, v, visited):
+        visited.append(v)
+        for connection in v.connections:
+            if self.allow_connection(connection) and connection.node not in visited:
+                self.dfs(connection.node, visited)
 
-                if vertex is not None:
-                    if not self.dest_visited.get(vertex, False):
-                        self.dest_queue.append(vertex)
-                        self.dest_visited[vertex] = True
-                        self.dest_parent = current
-
-    def is_intersection(self):
-        for key in self.src_visited:
-            if self.src_visited[key] and self.dest_visited[key]:
-                return key
-        return False
-
-    def bidirectional_search(self):
-        # we are always trying to get from R0 to Rx
-        # x is always the rows - 1
-        src = self.graph["R0"]
-        self.src_queue.append(src)
-        self.src_visited[src] = True
-        self.src_parent[src] = -1
-
-        dest = self.graph[f"R{self.rows-1}"]
-        self.dest_queue.append(dest)
-        self.dest_visited[src] = True
-        self.dest_parent[dest] = -1
-
-        while self.src_queue and self.dest_queue:
-            self.bfs('forward')
-            self.bfs('backward')
-
-            intersecting_node = self.is_intersection()
-
-            if intersecting_node != -1:
-                return True
+    def truthtable(self):
+        for x in range(self.n_variables):
+            print(f'{("x_" + str(x)):3}|', end='')
+        print(f'{"f":3}')
+        for x in range(pow(2, self.n_variables)):
+            ones = format(x, f'0{self.n_variables}b')
+            bools = []
+            for y in range(len(ones)):
+                bools.append(True if int(ones[y]) == 1 else False)
+                print(f'{str(1 if bools[y] else 0):>3}|', end='')
+            print(f'{str(1 if self.evaluate(bools) else 0):3}')
 
     """
     Prints all the connections of the matrix
@@ -168,13 +121,13 @@ class Crossbar:
     @staticmethod
     def read_crossbar(file):
         crossbar_file = open(file, "r")
-        init_lines = [crossbar_file.readline(), crossbar_file.readline(), crossbar_file.readline()]
+        init_lines = crossbar_file.readline()
         variables = None
         rows = None
         cols = None
         x = 0
-        for line in init_lines:
-            label = line.split(" ")
+        if len(init_lines.split(" ")) <= 2:
+            label = crossbar_file.readline().split(" ")
             if len(label) > 1:
                 if label[0] == "vars":
                     variables = int(label[1])
@@ -183,21 +136,36 @@ class Crossbar:
                 else:
                     cols = int(label[1])
             else:
-                if label[0] == "vars":
-                    variables = int(label[1])
-                elif x == 1:
-                    rows = int(label[0])
+                variables = int(label[1])
+            x = 1
+            while x < 2:
+                label = crossbar_file.readline().split(" ")
+                if len(label) > 1:
+                    if label[0] == "vars":
+                        variables = int(label[1])
+                    elif label[0] == "rows":
+                        rows = int(label[1])
+                    else:
+                        cols = int(label[1])
                 else:
-                    cols = int(label[0])
-            x += 1
-        crossbar = Crossbar(rows, cols, variables)
-        for x in range(rows):
-            line = crossbar_file.readline()
+                    if x == 1:
+                        rows = int(label[0])
+                    else:
+                        cols = int(label[0])
+                x += 1
+        else:
+            cols = len(init_lines.split(" "))
+            rows = len(crossbar_file.read().split("\n"))
+            crossbar_file.seek(0)
+        crossbar = Crossbar(rows, cols, 0 if variables is None else variables)
+        x = 0
+        for line in crossbar_file:
             cols = line.split(" ")
             for y in range(len(cols)):
                 if 0 < abs(int(cols[y])) < 99:
                     if crossbar.id_variable.get(abs(int(cols[y])), None) is None:
                         variable = Variable(abs(int(cols[y])))
+                        crossbar.n_variables += 1 if variables is None else crossbar.n_variables
                         crossbar.id_variable[variable.id] = variable
                     else:
                         variable = crossbar.id_variable[abs(int(cols[y]))]
@@ -208,6 +176,7 @@ class Crossbar:
                     crossbar.matrix[(x, y)] = variable
                 else:
                     crossbar.matrix[(x, y)] = int(cols[y])
+            x = x + 1
         return crossbar
 
 
@@ -215,6 +184,9 @@ class GraphNode:
     def __init__(self, node_id):
         self.id = node_id
         self.connections = []
+
+    def __repr__(self):
+        return self.id
 
 
 class Connection:

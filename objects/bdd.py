@@ -1,3 +1,4 @@
+from objects.crossbar import Crossbar
 from objects.variables import Variable
 
 
@@ -29,7 +30,8 @@ class BDD:
 
     def evaluate(self, bool_list):
         if len(bool_list) > len(self.variables):
-            print('Number of variables does not match the number of inputs')
+            print('(BDD) Number of variables does not match the number of inputs')
+            return False
         else:
             for x in range(1, len(bool_list) + 1):
                 self.variables[x].value = bool_list[x - 1]
@@ -41,17 +43,30 @@ class BDD:
                 node = node.right_child_node
         return True if node.terminal_node == 1 else False
 
-    def truthtable(self):
+    def enumeration_verification(self, xbar: Crossbar):
+        for x in range(pow(2, len(self.variables))):
+            ones = format(x, f'0{len(self.variables)}b')
+            bool_list = []
+            for y in range(len(ones)):
+                bool_list.append(True if int(ones[y]) == 1 else False)
+            if not (self.evaluate(bool_list) == xbar.evaluate(bool_list)):
+                return False
+        return True
+
+    def truth_table(self):
         for x in range(len(self.variables)):
             print(f'{("x_" + str(x)):3}|', end='')
         print(f'{"f":3}')
         for x in range(pow(2, len(self.variables))):
-            ones = format(x, '04b')
+            ones = format(x, f'0{len(self.variables)}b')
             bools = []
             for y in range(len(ones)):
                 bools.append(True if int(ones[y]) == 1 else False)
                 print(f'{str(1 if bools[y] else 0):>3}|', end='')
             print(f'{str(1 if self.evaluate(bools) else 0):3}')
+
+    def synthesize_xbar(self):
+        pass
 
     @staticmethod
     def read_bdd(file):
