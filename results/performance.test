@@ -1,0 +1,10 @@
+2 Variables: True
+		100.0ms
+5 Variables: True
+		748.0ms
+10 Variables: True
+		30476.0ms
+15 Variables: True
+		590295.0ms
+20 Variables: True
+		21224261.0ms
