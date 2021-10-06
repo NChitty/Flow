@@ -55,7 +55,7 @@ class BDD:
 
     def truth_table(self):
         for x in range(len(self.variables)):
-            print(f'{("x_" + str(x)):3}|', end='')
+            print(f'{("x_" + str(x+1)):3}|', end='')
         print(f'{"f":3}')
         for x in range(pow(2, len(self.variables))):
             ones = format(x, f'0{len(self.variables)}b')
@@ -66,6 +66,33 @@ class BDD:
             print(f'{str(1 if self.evaluate(bools) else 0):3}')
 
     def synthesize_xbar(self):
+        # Start at initial node
+        # place variable at (0,0)
+        # on 1 place variable at (1,0)
+        # on 0 place variable at (0,1) terminal conditions apply
+        # (SC1) there is a variable above
+        # while unvisited nodes:
+            # if row is odd:
+                # on 1 place variable at (r, c+1)
+                # on 0 place variable at (r+1, c) (SC1)
+                # if variable goes to 1
+                    # on 1, place 1 in last col with last row 1 (SC1)
+                    # on 0, place 1 in last row (SC1)
+                # if variable goes to 0
+                    # on 1, fill rows with 0s
+                    # on 0, place 0s on all rows below
+            # if row is even:
+                # on 1 place variable at (r+1, c) (SC1)
+                # on 0 place variable at (r, c+1)
+                # if variable goes to 1
+                    # on 1, place 1 on last row beneath variable (SC1)
+                    # on 0, go to odd row and place on 1
+                # if variable goes to 0
+                    # on 1, place 0s on all rows below
+                    # on 0, fill row with zeros
+            # (SC1):
+                # shift right by adding a 99 in col and 0 for all rows after (odd)
+                # shift down by adding 1 above and padding with 0s (even)
         pass
 
     @staticmethod
