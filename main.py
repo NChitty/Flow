@@ -16,6 +16,25 @@ def performance_comparison(n_vars):
 def test_equivalence(no_of_tests):
     bdd = BDD.read_bdd("bdds/var5.bdd")
     print(f"{'Test':4}|Equivalent")
-    for x in range(1, no_of_tests):
+    for x in range(1, no_of_tests+1):
         xbar = Crossbar.read_crossbar(f"xbars/test{x}.xbar")
         print(f"{x:4}|{'True' if bdd.enumeration_verification(xbar) else 'False':10}")
+
+def lone_equivalence_test(bdd_file, xbar_file):
+    bdd = BDD.read_bdd(bdd_file)
+    xbar = Crossbar.read_crossbar(xbar_file)
+    if not bdd.enumeration_verification(xbar):
+        print("-----------------------------BDD Truth Table-----------------------------")
+        bdd.truth_table()
+        print("-----------------------------XBar Truth Table-----------------------------")
+        xbar.truth_table()
+        return
+    print(True)
+
+#test_equivalence(5)
+#performance_comparison(2)
+xbar = Crossbar.read_crossbar("xbars/var2.xbar")
+xbar.truth_table()
+#performance_comparison(5)
+#performance_comparison(10)
+#performance_comparison(15)
