@@ -88,12 +88,13 @@ class Crossbar:
     def dfs(self, v, visited):
         visited.append(v)
         for connection in v.connections:
-            if self.allow_connection(connection) and connection.node not in visited:
+            if self.allow_connection(connection) and (connection.node not in visited):
                 self.dfs(connection.node, visited)
 
-    def truthtable(self):
+
+    def truth_table(self):
         for x in range(self.n_variables):
-            print(f'{("x_" + str(x)):3}|', end='')
+            print(f'{("x_" + str(x+1)):3}|', end='')
         print(f'{"f":3}')
         for x in range(pow(2, self.n_variables)):
             ones = format(x, f'0{self.n_variables}b')
@@ -126,7 +127,8 @@ class Crossbar:
         rows = None
         cols = None
         x = 0
-        if len(init_lines.split(" ")) <= 2:
+        if len(init_lines.split(" ")) <= 2 and (init_lines.split(" ")[0] == "vars" or init_lines.split(" ")[0] == "rows"
+                                                or init_lines.split(" ")[0] == "cols"):
             label = crossbar_file.readline().split(" ")
             if len(label) > 1:
                 if label[0] == "vars":
