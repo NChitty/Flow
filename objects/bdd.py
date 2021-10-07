@@ -5,9 +5,9 @@ from objects.variables import Variable
 class Node:
     def __init__(self, node_id):
         self.node_id = node_id
-        self.left_child_node = None
-        self.right_child_node = None
-        self.decision_variable = None
+        self.left_child_node: Node = None
+        self.right_child_node: Node = None
+        self.decision_variable: Variable = None
         self.terminal_node = False
 
 
@@ -66,34 +66,61 @@ class BDD:
             print(f'{str(1 if self.evaluate(bools) else 0):3}')
 
     def synthesize_xbar(self):
-        # Start at initial node
-        # place variable at (0,0)
-        # on 1 place variable at (1,0)
-        # on 0 place variable at (0,1) terminal conditions apply
-        # (SC1) there is a variable above
-        # while unvisited nodes:
-            # if row is odd:
-                # on 1 place variable at (r, c+1)
-                # on 0 place variable at (r+1, c) (SC1)
-                # if variable goes to 1
-                    # on 1, place 1 in last col with last row 1 (SC1)
-                    # on 0, place 1 in last row (SC1)
-                # if variable goes to 0
-                    # on 1, fill rows with 0s
-                    # on 0, place 0s on all rows below
-            # if row is even:
-                # on 1 place variable at (r+1, c) (SC1)
-                # on 0 place variable at (r, c+1)
-                # if variable goes to 1
-                    # on 1, place 1 on last row beneath variable (SC1)
-                    # on 0, go to odd row and place on 1
-                # if variable goes to 0
-                    # on 1, place 0s on all rows below
-                    # on 0, fill row with zeros
-            # (SC1):
-                # shift right by adding a 99 in col and 0 for all rows after (odd)
-                # shift down by adding 1 above and padding with 0s (even)
-        pass
+        # Create matrix with rows = number of nodes - 1
+        # Cols = number of nodes - 1
+        matrix = [[0 for x in range(len(self.nodes)-1)] for y in range(len(self.nodes)-1)]
+        # place 99 in bottom right position
+        matrix[-1][-1] = 99
+        visited = [False] * len(self.nodes)
+        current = self.nodes[1]
+        row = 0
+        col = 0
+        while False in visited:
+            self.synthesis_helper(current, visited, matrix, row, col)
+        return matrix
+
+    def synthesis_helper(self, current: Node, visited, matrix, row, col):
+        # do not try to process terminal nodes
+        if current.right_child_node == -1 or current.left_child_node == -1:
+            return
+        # If there is no unvisited node continue
+        if False not in visited:
+            return
+        visited[current.node_id - 1] = True
+        # Place variable in row, col
+        matrix[row][col] = current.decision_variable.id
+        # if node goes to another node, place 99 immediately below and variable to right on 1
+        if not current.left_child_node.terminal_node:
+            matrix[current.left_child_node.node_id-1][col] = 99
+            self.synthesis_helper(current.left_child_node, visited, matrix, current.left_child_node.node_id-1, col+1)
+        # if node goes to another node, place not variable to right and variable immediately below on 0
+        if not current.right_child_node.terminal_node:
+            matrix[row][col+1] = -1 * current.decision_variable.id
+            self.synthesis_helper(current.right_child_node, visited, matrix, current.right_child_node.node_id-1, col+1)
+        # if node goes to terminal node
+        if current.left_child_node.terminal_node is not False:
+            visited[current.left_child_node.node_id-1] = True
+            # if node goes to 0 on 1
+            if current.left_child_node.terminal_node == 0:
+                # place 0s in all rows below in same col
+                for x in range(row+1, len(matrix)):
+                    matrix[x][col] = 0
+            # if node goes to 1 on 1
+            if current.left_child_node.terminal_node == 1:
+                # place 99 in last col
+                matrix[row][-1] = 99
+        if current.right_child_node.terminal_node is not False:
+            visited[current.right_child_node.node_id - 1] = True
+            # if node goes to 0 on 0
+            if current.right_child_node.terminal_node == 0:
+                # place 0s in row
+                for y in range(col + 1, len(matrix[row])):
+                    matrix[row][y] = 0
+            # if node goes to 1 on 0
+            if current.right_child_node.terminal_node == 1:
+                # negate variable and place 99 in last row in same col
+                matrix[-1][col] = 99
+        return
 
     @staticmethod
     def read_bdd(file):
