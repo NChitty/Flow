@@ -32,9 +32,9 @@ def lone_equivalence_test(bdd_file, xbar_file):
     print(True)
 
 #test_equivalence(5)
-#performance_comparison(2)
-xbar = Crossbar.read_crossbar("xbars/var2.xbar")
-xbar.truth_table()
+performance_comparison(2)
 #performance_comparison(5)
 #performance_comparison(10)
 #performance_comparison(15)
+bdd = BDD.read_bdd("bdd.test")
+print(bdd.synthesize_xbar())
