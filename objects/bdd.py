@@ -75,11 +75,12 @@ class BDD:
         current = self.nodes[1]
         row = 0
         col = 0
+        reserved = []
         while False in visited:
-            self.synthesis_helper(current, visited, matrix, row, col)
+            self.synthesis_helper(current, visited, matrix, row, col, reserved)
         return matrix
 
-    def synthesis_helper(self, current: Node, visited, matrix, row, col):
+    def synthesis_helper(self, current: Node, visited, matrix, row, col, reserved):
         # do not try to process terminal nodes
         if current.right_child_node == -1 or current.left_child_node == -1:
             return
@@ -88,38 +89,71 @@ class BDD:
             return
         visited[current.node_id - 1] = True
         # Place variable in row, col
+        while (row, col) in reserved:
+            col = col + 1
+        if col <= len(matrix[row])-1:
+            matrix[row][col] = current.decision_variable.id
+        else:
+            for r in range(len(matrix)):
+                matrix[r].append(0)
         matrix[row][col] = current.decision_variable.id
-        # if node goes to another node, place 99 immediately below and variable to right on 1
-        if not current.left_child_node.terminal_node:
-            matrix[current.left_child_node.node_id-1][col] = 99
-            self.synthesis_helper(current.left_child_node, visited, matrix, current.left_child_node.node_id-1, col+1)
-        # if node goes to another node, place not variable to right and variable immediately below on 0
-        if not current.right_child_node.terminal_node:
-            matrix[row][col+1] = -1 * current.decision_variable.id
-            self.synthesis_helper(current.right_child_node, visited, matrix, current.right_child_node.node_id-1, col+1)
+        reserved.append((row, col))
+        terminal_nodes = 0
         # if node goes to terminal node
-        if current.left_child_node.terminal_node is not False:
-            visited[current.left_child_node.node_id-1] = True
+        if current.left_child_node.terminal_node != False:
+            visited[current.left_child_node.node_id - 1] = True
             # if node goes to 0 on 1
             if current.left_child_node.terminal_node == 0:
                 # place 0s in all rows below in same col
-                for x in range(row+1, len(matrix)):
+                for x in range(row + 1, len(matrix)):
+                    reserved.append((x, col))
                     matrix[x][col] = 0
             # if node goes to 1 on 1
             if current.left_child_node.terminal_node == 1:
-                # place 99 in last col
+                # place 99 in same col underneath current
                 matrix[row][-1] = 99
-        if current.right_child_node.terminal_node is not False:
+                reserved.append((len(matrix) - 1, col))
+            terminal_nodes = terminal_nodes + 1
+        if current.right_child_node.terminal_node != False:
             visited[current.right_child_node.node_id - 1] = True
             # if node goes to 0 on 0
             if current.right_child_node.terminal_node == 0:
                 # place 0s in row
                 for y in range(col + 1, len(matrix[row])):
+                    reserved.append((row, y))
                     matrix[row][y] = 0
             # if node goes to 1 on 0
             if current.right_child_node.terminal_node == 1:
                 # negate variable and place 99 in last row in same col
-                matrix[-1][col] = 99
+                reserved.append((row, len(matrix[row]) - 1))
+                matrix[row][-1] = 99
+            terminal_nodes = terminal_nodes + 1
+        if terminal_nodes == 2:
+            return
+        # if node goes to another node, place 99 immediately below and variable to right on 1
+        if current.left_child_node.terminal_node is False:
+            matrix[current.left_child_node.node_id-1][col] = 99
+            reserved.append((current.left_child_node.node_id-1, col))
+            self.synthesis_helper(
+                current.left_child_node,
+                visited,
+                matrix,
+                current.left_child_node.node_id-1,
+                col+1,
+                reserved
+            )
+        # if node goes to another node, place not variable to right and variable immediately below on 0
+        if current.right_child_node.terminal_node is False:
+            matrix[row][col+1] = -1 * current.decision_variable.id
+            reserved.append((row, col+1))
+            self.synthesis_helper(
+                current.right_child_node,
+                visited,
+                matrix,
+                current.right_child_node.node_id-1,
+                col+1,
+                reserved
+            )
         return
 
     @staticmethod
