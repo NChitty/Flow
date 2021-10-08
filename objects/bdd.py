@@ -98,9 +98,20 @@ class BDD:
                 matrix[r].append(0)
         matrix[row][col] = current.decision_variable.id
         reserved.append((row, col))
-        terminal_nodes = 0
-        # if node goes to terminal node
-        if current.left_child_node.terminal_node != False:
+        if current.left_child_node.terminal_node is False:
+            # if node goes to another node, place 99 immediately below and variable to right on 1
+            matrix[current.left_child_node.node_id - 1][col] = 99
+            reserved.append((current.left_child_node.node_id - 1, col))
+            self.synthesis_helper(
+                current.left_child_node,
+                visited,
+                matrix,
+                current.left_child_node.node_id - 1,
+                col + 1,
+                reserved
+            )
+        else:
+            # if node goes to terminal node
             visited[current.left_child_node.node_id - 1] = True
             # if node goes to 0 on 1
             if current.left_child_node.terminal_node == 0:
@@ -113,8 +124,19 @@ class BDD:
                 # place 99 in same col underneath current
                 matrix[row][-1] = 99
                 reserved.append((len(matrix) - 1, col))
-            terminal_nodes = terminal_nodes + 1
-        if current.right_child_node.terminal_node != False:
+        if current.right_child_node.terminal_node is False:
+            # if node goes to another node, place not variable to right and variable immediately below on 0
+            matrix[row][col] = -1 * current.decision_variable.id
+            reserved.append((row, col))
+            self.synthesis_helper(
+                current.right_child_node,
+                visited,
+                matrix,
+                current.right_child_node.node_id - 1,
+                col + 1,
+                reserved
+            )
+        else:
             visited[current.right_child_node.node_id - 1] = True
             # if node goes to 0 on 0
             if current.right_child_node.terminal_node == 0:
@@ -127,33 +149,6 @@ class BDD:
                 # negate variable and place 99 in last row in same col
                 reserved.append((row, len(matrix[row]) - 1))
                 matrix[row][-1] = 99
-            terminal_nodes = terminal_nodes + 1
-        if terminal_nodes == 2:
-            return
-        # if node goes to another node, place 99 immediately below and variable to right on 1
-        if current.left_child_node.terminal_node is False:
-            matrix[current.left_child_node.node_id-1][col] = 99
-            reserved.append((current.left_child_node.node_id-1, col))
-            self.synthesis_helper(
-                current.left_child_node,
-                visited,
-                matrix,
-                current.left_child_node.node_id-1,
-                col+1,
-                reserved
-            )
-        # if node goes to another node, place not variable to right and variable immediately below on 0
-        if current.right_child_node.terminal_node is False:
-            matrix[row][col+1] = -1 * current.decision_variable.id
-            reserved.append((row, col+1))
-            self.synthesis_helper(
-                current.right_child_node,
-                visited,
-                matrix,
-                current.right_child_node.node_id-1,
-                col+1,
-                reserved
-            )
         return
 
     @staticmethod
@@ -195,3 +190,5 @@ class BDD:
                 node.decision_variable = variable
         bdd_file.close()
         return bdd
+
+
