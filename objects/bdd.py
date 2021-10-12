@@ -68,7 +68,7 @@ class BDD:
     def synthesize_xbar(self):
         # Create matrix with rows = number of nodes - 1
         # Cols = number of nodes - 1
-        matrix = [[0 for x in range(len(self.nodes)-1)] for y in range(len(self.nodes)-1)]
+        matrix = [[0 for x in range(len(self.nodes))] for y in range(len(self.nodes))]
         # place 99 in bottom right position
         matrix[-1][-1] = 99
         visited = [False] * len(self.nodes)
@@ -78,7 +78,8 @@ class BDD:
         reserved = []
         while False in visited:
             self.synthesis_helper(current, visited, matrix, row, col, reserved)
-        return matrix
+        xbar = Crossbar.convert_matrix(matrix, len(self.variables))
+        return xbar
 
     def synthesis_helper(self, current: Node, visited, matrix, row, col, reserved):
         # do not try to process terminal nodes
@@ -122,12 +123,14 @@ class BDD:
             # if node goes to 1 on 1
             if current.left_child_node.terminal_node == 1:
                 # place 99 in same col underneath current
-                matrix[row][-1] = 99
+                matrix[-1][col] = 99
                 reserved.append((len(matrix) - 1, col))
         if current.right_child_node.terminal_node is False:
             # if node goes to another node, place not variable to right and variable immediately below on 0
+            col = col + 1
             matrix[row][col] = -1 * current.decision_variable.id
             reserved.append((row, col))
+            matrix[current.right_child_node.node_id-1][col] = 99
             self.synthesis_helper(
                 current.right_child_node,
                 visited,
@@ -150,6 +153,10 @@ class BDD:
                 reserved.append((row, len(matrix[row]) - 1))
                 matrix[row][-1] = 99
         return
+
+    def fix_reserved(self,  row, col, reserved, matrix):
+        pass
+
 
     @staticmethod
     def read_bdd(file):

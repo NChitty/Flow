@@ -6,7 +6,7 @@ class Crossbar:
         # Variables to store information about crossbar
         self.rows = rows
         self.cols = cols
-        self.n_variables = n_variables
+        self.n_variables: int = n_variables
 
         # Variables to store information about graph
         self.id_variable = {}
@@ -179,6 +179,26 @@ class Crossbar:
                 else:
                     crossbar.matrix[(x, y)] = int(cols[y])
             x = x + 1
+        return crossbar
+
+    @staticmethod
+    def convert_matrix(matrix, variables):
+        crossbar = Crossbar(len(matrix), len(matrix[0]), variables)
+        for x in range(len(matrix)):
+            for y in range(len(matrix[x])):
+                if 0 < abs(matrix[x][y]) < 99:
+                    if crossbar.id_variable.get(abs(matrix[x][y]), None) is None:
+                        variable = Variable(abs(matrix[x][y]))
+                        crossbar.id_variable[variable.id] = variable
+                    else:
+                        variable = crossbar.id_variable[abs(matrix[x][y])]
+                    if matrix[x][y] < 0:
+                        crossbar.variable_negation.update({(x, y): {variable: True}})
+                    else:
+                        crossbar.variable_negation.update({(x, y): {variable: False}})
+                    crossbar.matrix[(x, y)] = variable
+                else:
+                    crossbar.matrix[(x, y)] = matrix[x][y]
         return crossbar
 
 
