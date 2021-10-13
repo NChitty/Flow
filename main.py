@@ -4,13 +4,21 @@ from objects.bdd import BDD, read_bdd
 from objects.crossbar import Crossbar, read_crossbar
 
 
-def performance_comparison(n_vars):
+def performance_comparison_enumeration(n_vars):
     bdd = read_bdd(f"bdds/var{n_vars}.bdd")
     xbar = read_crossbar(f"xbars/var{n_vars}.xbar")
     start = time.process_time_ns()
     print(f"{n_vars} Variables: {bdd.enumeration_verification(xbar)}")
     end = time.process_time_ns()
     print(f"\t\t{(end - start) / 1000.0}ms")
+
+
+def performance_comparison_synthesis(n_vars):
+    bdd = read_bdd(f"bdds/var{n_vars}.bdd")
+    start = time.process_time_ns()
+    xbar = bdd.synthesize_xbar()
+    end = time.process_time_ns()
+    print(f"Nodes {len(bdd.nodes)}: {(end-start)/1000.0}ms")
 
 
 def test_equivalence(no_of_tests):
@@ -60,3 +68,4 @@ def synthesize_xbar(bdd_file):
     string = bdd_file
     print(f"Creating synthesized xbar file @ xbars/{string.split('/')[1].split('.')[0]}_synthesis.xbar")
     xbar.fprint_matrix(f"xbars/{string.split('/')[1].split('.')[0]}_synthesis.xbar")
+
