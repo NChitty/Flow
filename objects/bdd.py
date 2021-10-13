@@ -66,9 +66,11 @@ def minimize_matrix(matrix):
         if flag:
             rows -= 1
             matrix.pop(x)
+            continue
         x += 1
     cols = len(matrix[rows - 1])
     y = 0
+    # search cols
     while y < cols:
         flag = True
         for x in range(len(matrix)):
@@ -79,7 +81,9 @@ def minimize_matrix(matrix):
             for x in range(len(matrix)):
                 matrix[x].pop(y)
             cols -= 1
+            continue
         y += 1
+    return matrix
 
 
 class BDD:
