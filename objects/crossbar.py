@@ -1,6 +1,88 @@
 from objects.variables import Variable
 
 
+def read_crossbar(file):
+    crossbar_file = open(file, "r")
+    init_lines = crossbar_file.readline()
+    variables = None
+    rows = None
+    cols = None
+    x = 0
+    if len(init_lines.split(" ")) <= 2 and (init_lines.split(" ")[0] == "vars" or init_lines.split(" ")[0] == "rows"
+                                            or init_lines.split(" ")[0] == "cols"):
+        label = crossbar_file.readline().split(" ")
+        if len(label) > 1:
+            if label[0] == "vars":
+                variables = int(label[1])
+            elif label[0] == "rows":
+                rows = int(label[1])
+            else:
+                cols = int(label[1])
+        else:
+            variables = int(label[1])
+        x = 1
+        while x < 2:
+            label = crossbar_file.readline().split(" ")
+            if len(label) > 1:
+                if label[0] == "vars":
+                    variables = int(label[1])
+                elif label[0] == "rows":
+                    rows = int(label[1])
+                else:
+                    cols = int(label[1])
+            else:
+                if x == 1:
+                    rows = int(label[0])
+                else:
+                    cols = int(label[0])
+            x += 1
+    else:
+        cols = len(init_lines.split(" "))
+        rows = len(crossbar_file.read().split("\n"))
+        crossbar_file.seek(0)
+    crossbar = Crossbar(rows, cols, 0 if variables is None else variables)
+    x = 0
+    for line in crossbar_file:
+        cols = line.split(" ")
+        for y in range(len(cols)):
+            if 0 < abs(int(cols[y])) < 99:
+                if crossbar.id_variable.get(abs(int(cols[y])), None) is None:
+                    variable = Variable(abs(int(cols[y])))
+                    crossbar.n_variables += 1 if variables is None else crossbar.n_variables
+                    crossbar.id_variable[variable.id] = variable
+                else:
+                    variable = crossbar.id_variable[abs(int(cols[y]))]
+                if int(cols[y]) < 0:
+                    crossbar.variable_negation.update({(x, y): {variable: True}})
+                else:
+                    crossbar.variable_negation.update({(x, y): {variable: False}})
+                crossbar.matrix[(x, y)] = variable
+            else:
+                crossbar.matrix[(x, y)] = int(cols[y])
+        x = x + 1
+    return crossbar
+
+
+def convert_matrix(matrix, variables):
+    crossbar = Crossbar(len(matrix), len(matrix[0]), variables)
+    for x in range(len(matrix)):
+        for y in range(len(matrix[x])):
+            if 0 < abs(matrix[x][y]) < 99:
+                if crossbar.id_variable.get(abs(matrix[x][y]), None) is None:
+                    variable = Variable(abs(matrix[x][y]))
+                    crossbar.id_variable[variable.id] = variable
+                else:
+                    variable = crossbar.id_variable[abs(matrix[x][y])]
+                if matrix[x][y] < 0:
+                    crossbar.variable_negation.update({(x, y): {variable: True}})
+                else:
+                    crossbar.variable_negation.update({(x, y): {variable: False}})
+                crossbar.matrix[(x, y)] = variable
+            else:
+                crossbar.matrix[(x, y)] = matrix[x][y]
+    return crossbar
+
+
 class Crossbar:
     def __init__(self, rows, cols, n_variables):
         # Variables to store information about crossbar
@@ -27,19 +109,21 @@ class Crossbar:
             print("")
 
     def fprint_matrix(self, filename):
-        save_file = open(filename, "w")
-        save_file.writelines(f'vars {self.variable_negation}\nrows {self.rows}\ncols {self.cols}\n')
-        for x in range(len(self.matrix)):
-            for y in self.matrix[x]:
+        save_file = open(filename, "w+")
+        save_file.writelines(f'vars {self.n_variables}\nrows {self.rows}\ncols {self.cols}\n')
+        for x in range(self.rows):
+            string = ""
+            for y in range(self.cols):
                 if type(self.matrix[(x, y)]) is Variable:
                     variable = self.matrix[(x, y)]
-                    if self.variable_negation[variable.id][variable]:
-                        save_file.write(f'{-1 * variable.id} ')
+                    if self.variable_negation[(x, y)][variable]:
+                        string += f'{-1 * variable.id} '
                     else:
-                        save_file.write(f'{variable.id} ')
+                        string += f'{variable.id} '
                 else:
-                    save_file.write(f'{self.matrix[(x, y)]} ')
-            save_file.writelines("\n")
+                    string += f'{self.matrix[(x, y)]} '
+            string = string.strip()
+            save_file.writelines(f"{string}\n")
 
     def create_graph(self):
         for x in range(self.rows):
@@ -73,7 +157,8 @@ class Crossbar:
             self.create_graph()
         # Set values of all variables
         if len(bool_list) != self.n_variables:
-            print(f'(Crossbar) Length of input and number of variables do not match:\n Inputs: {len(bool_list)}\tVariables: {self.n_variables}')
+            print(
+                f'(Crossbar) Length of input and number of variables do not match:\n Inputs: {len(bool_list)}\tVariables: {self.n_variables}')
             return False
         else:
             for x in range(len(bool_list)):
@@ -91,10 +176,9 @@ class Crossbar:
             if self.allow_connection(connection) and (connection.node not in visited):
                 self.dfs(connection.node, visited)
 
-
     def truth_table(self):
         for x in range(self.n_variables):
-            print(f'{("x_" + str(x+1)):3}|', end='')
+            print(f'{("x_" + str(x + 1)):3}|', end='')
         print(f'{"f":3}')
         for x in range(pow(2, self.n_variables)):
             ones = format(x, f'0{self.n_variables}b')
@@ -113,93 +197,6 @@ class Crossbar:
             node = self.graph[key]
             for connection in node.connections:
                 print(f'{node.id}->{connection.node.id}')
-
-    """
-    Reads the input file
-    :returns the equivalent crossbar matrix from file
-    """
-
-    @staticmethod
-    def read_crossbar(file):
-        crossbar_file = open(file, "r")
-        init_lines = crossbar_file.readline()
-        variables = None
-        rows = None
-        cols = None
-        x = 0
-        if len(init_lines.split(" ")) <= 2 and (init_lines.split(" ")[0] == "vars" or init_lines.split(" ")[0] == "rows"
-                                                or init_lines.split(" ")[0] == "cols"):
-            label = crossbar_file.readline().split(" ")
-            if len(label) > 1:
-                if label[0] == "vars":
-                    variables = int(label[1])
-                elif label[0] == "rows":
-                    rows = int(label[1])
-                else:
-                    cols = int(label[1])
-            else:
-                variables = int(label[1])
-            x = 1
-            while x < 2:
-                label = crossbar_file.readline().split(" ")
-                if len(label) > 1:
-                    if label[0] == "vars":
-                        variables = int(label[1])
-                    elif label[0] == "rows":
-                        rows = int(label[1])
-                    else:
-                        cols = int(label[1])
-                else:
-                    if x == 1:
-                        rows = int(label[0])
-                    else:
-                        cols = int(label[0])
-                x += 1
-        else:
-            cols = len(init_lines.split(" "))
-            rows = len(crossbar_file.read().split("\n"))
-            crossbar_file.seek(0)
-        crossbar = Crossbar(rows, cols, 0 if variables is None else variables)
-        x = 0
-        for line in crossbar_file:
-            cols = line.split(" ")
-            for y in range(len(cols)):
-                if 0 < abs(int(cols[y])) < 99:
-                    if crossbar.id_variable.get(abs(int(cols[y])), None) is None:
-                        variable = Variable(abs(int(cols[y])))
-                        crossbar.n_variables += 1 if variables is None else crossbar.n_variables
-                        crossbar.id_variable[variable.id] = variable
-                    else:
-                        variable = crossbar.id_variable[abs(int(cols[y]))]
-                    if int(cols[y]) < 0:
-                        crossbar.variable_negation.update({(x, y): {variable: True}})
-                    else:
-                        crossbar.variable_negation.update({(x, y): {variable: False}})
-                    crossbar.matrix[(x, y)] = variable
-                else:
-                    crossbar.matrix[(x, y)] = int(cols[y])
-            x = x + 1
-        return crossbar
-
-    @staticmethod
-    def convert_matrix(matrix, variables):
-        crossbar = Crossbar(len(matrix), len(matrix[0]), variables)
-        for x in range(len(matrix)):
-            for y in range(len(matrix[x])):
-                if 0 < abs(matrix[x][y]) < 99:
-                    if crossbar.id_variable.get(abs(matrix[x][y]), None) is None:
-                        variable = Variable(abs(matrix[x][y]))
-                        crossbar.id_variable[variable.id] = variable
-                    else:
-                        variable = crossbar.id_variable[abs(matrix[x][y])]
-                    if matrix[x][y] < 0:
-                        crossbar.variable_negation.update({(x, y): {variable: True}})
-                    else:
-                        crossbar.variable_negation.update({(x, y): {variable: False}})
-                    crossbar.matrix[(x, y)] = variable
-                else:
-                    crossbar.matrix[(x, y)] = matrix[x][y]
-        return crossbar
 
 
 class GraphNode:
