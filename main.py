@@ -60,3 +60,9 @@ def synthesize_xbar(bdd_file):
     string = bdd_file
     print(f"Creating synthesized xbar file @ xbars/{string.split('/')[1].split('.')[0]}_synthesis.xbar")
     xbar.fprint_matrix(f"xbars/{string.split('/')[1].split('.')[0]}_synthesis.xbar")
+
+if __name__ == "__main__":
+    xbar = read_crossbar("xbars/var2.xbar")
+    xbar.truth_table()
+    bdd = read_bdd(("bdds/var2.bdd"))
+    bdd.truth_table()
