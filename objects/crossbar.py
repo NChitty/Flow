@@ -3,6 +3,7 @@ from objects.variables import Variable
 
 def read_crossbar(file):
     crossbar_file = open(file, "r")
+    print(f"Opened {file}, creating crossbar...")
     init_lines = crossbar_file.readline()
     variables = None
     rows = None
@@ -40,7 +41,7 @@ def read_crossbar(file):
         cols = len(init_lines.split(" "))
         rows = len(crossbar_file.read().split("\n"))
         crossbar_file.seek(0)
-    crossbar = Crossbar(rows, cols, 0 if variables is None else variables)
+    crossbar = Crossbar(file, rows, cols, 0 if variables is None else variables)
     x = 0
     for line in crossbar_file:
         cols = line.split(" ")
@@ -60,6 +61,7 @@ def read_crossbar(file):
             else:
                 crossbar.matrix[(x, y)] = int(cols[y])
         x = x + 1
+    print("Finished creating crossbar")
     return crossbar
 
 
@@ -84,7 +86,8 @@ def convert_matrix(matrix, variables):
 
 
 class Crossbar:
-    def __init__(self, rows, cols, n_variables):
+    def __init__(self, file, rows, cols, n_variables):
+        self.file = file
         # Variables to store information about crossbar
         self.rows = rows
         self.cols = cols
@@ -108,8 +111,8 @@ class Crossbar:
                     print(f'{self.matrix[(x, y)]} ', end='')
             print("")
 
-    def fprint_matrix(self, filename):
-        save_file = open(filename, "w+")
+    def fprint_matrix(self):
+        save_file = open(self.file, "w+")
         save_file.writelines(f'vars {self.n_variables}\nrows {self.rows}\ncols {self.cols}\n')
         for x in range(self.rows):
             string = ""

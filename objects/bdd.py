@@ -15,6 +15,7 @@ class Node:
 
 def read_bdd(file):
     bdd_file = open(file, "r")
+    print(f"Opened {file}, creating...")
     vars_line = bdd_file.readline()
     nodes_line = bdd_file.readline()
     label = vars_line.split(" ")
@@ -28,7 +29,7 @@ def read_bdd(file):
     if len(label) > 1:
         if label[0] == "nodes":
             nodes = int(label[1])
-    bdd = BDD({})
+    bdd = BDD(file, {})
     for x in range(1, nodes + 1):
         bdd.nodes.update({x: Node(x)})
     for x in range(nodes):
@@ -50,6 +51,7 @@ def read_bdd(file):
             node.right_child_node = bdd.nodes[int(ints[2])]
             node.decision_variable = variable
     bdd_file.close()
+    print("Finished reading bdd")
     return bdd
 
 
@@ -87,21 +89,24 @@ def minimize_matrix(matrix):
 
 
 class BDD:
-    def __init__(self, nodes):
+    def __init__(self, file, nodes):
+        self.file = file
         self.nodes = nodes
         self.variables = {}
 
     def print(self):
         print(f'vars {len(self.variables)}')
         print(f'nodes {len(self.nodes)}')
-        for node_key in self.nodes.keys:
+        for node_key in self.nodes.keys():
             node = self.nodes[node_key]
             if type(node.decision_variable) is Variable:
                 print(
-                    f'{node.node_id} {node.left_child_node.id} {node.right_child_node.id} {node.decision_variable.id}'
+                    f'{node.node_id} {node.left_child_node.node_id} '
+                    f'{node.right_child_node.node_id} {node.decision_variable.id}'
                 )
             else:
-                print(f'{node.node_id} {node.left_child_node} {node.right_child_node} {node.terminal_node}')
+                print(f'{node.node_id} {node.left_child_node} '
+                      f'{node.right_child_node} {node.terminal_node}')
 
     def evaluate(self, bool_list):
         if len(bool_list) > len(self.variables):
@@ -145,7 +150,7 @@ class BDD:
                 print(f'{str(1 if bools[y] else 0):>3}|', end='')
             print(f'{str(1 if self.evaluate(bools) else 0):3}')
 
-    def synthesize_xbar(self):
+    def synthesize_xbar(self, file):
         # Create matrix a nodes x nodes matrix
         matrix = [[0 for x in range(len(self.nodes))] for y in range(len(self.nodes))]
         current = self.nodes[1]
@@ -155,6 +160,7 @@ class BDD:
         self.synthesis_helper(current, True, row, col, visited, matrix)
         minimize_matrix(matrix)
         xbar = convert_matrix(matrix, len(self.variables))
+        xbar.file = file
         return xbar
 
     def synthesis_helper(self, current: Node, horizontal: bool, row, col, visited, matrix):
