@@ -159,8 +159,7 @@ class BDD:
         visited = [False] * len(self.nodes)
         self.synthesis_helper(current, True, row, col, visited, matrix)
         minimize_matrix(matrix)
-        xbar = convert_matrix(matrix, len(self.variables))
-        xbar.file = file
+        xbar = convert_matrix(file, matrix, len(self.variables))
         return xbar
 
     def synthesis_helper(self, current: Node, horizontal: bool, row, col, visited, matrix):

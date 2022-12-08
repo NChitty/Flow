@@ -1,4 +1,4 @@
-import time
+from time import process_time_ns
 
 from objects.bdd import BDD, read_bdd
 from objects.crossbar import Crossbar, read_crossbar
@@ -75,11 +75,13 @@ if __name__ == "__main__":
                 continue
             index_bdd = int(parsed_command[1])
             index_xbar = int(parsed_command[2])
+            start = process_time_ns()
             is_equivalent = bdds[index_bdd].enumeration_verification(xbars[index_xbar])
+            end = process_time_ns()
             if len(is_equivalent) == 0:
-                print(f"BDD {index_bdd} is equivalent to Crossbar {index_xbar}")
+                print(f"BDD {index_bdd} is equivalent to Crossbar {index_xbar} in {end-start}ns")
             else:
-                print(f"BDD {index_bdd} is not equivalent to Crossbar {index_xbar}")
+                print(f"BDD {index_bdd} is not equivalent to Crossbar {index_xbar} in {end-start}ns")
         elif parsed_command[0] == "synthesize":
             index = parse_index(parsed_command, 2)
             xbars.append(bdds[index].synthesize_xbar(parsed_command[1]))

@@ -65,8 +65,8 @@ def read_crossbar(file):
     return crossbar
 
 
-def convert_matrix(matrix, variables):
-    crossbar = Crossbar(len(matrix), len(matrix[0]), variables)
+def convert_matrix(file, matrix, variables):
+    crossbar = Crossbar(file, len(matrix), len(matrix[0]), variables)
     for x in range(len(matrix)):
         for y in range(len(matrix[x])):
             if 0 < abs(matrix[x][y]) < 99:
